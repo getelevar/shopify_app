@@ -24,6 +24,10 @@ module ShopifyApp
       @myshopify_domain = 'myshopify.com'
     end
 
+    def enable_same_site_none
+      true
+    end
+
     def has_webhooks?
       webhooks.present?
     end
