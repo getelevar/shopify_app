@@ -13,6 +13,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency('rails', '>= 4.2.6')
   s.add_runtime_dependency('shopify_api', '>= 4.2.2')
   s.add_runtime_dependency('omniauth-shopify-oauth2', '~> 1.1.11')
+  s.add_runtime_dependency('browser_sniffer', '~> 1.1.3')
 
   s.add_development_dependency('rake')
   s.add_development_dependency('byebug')

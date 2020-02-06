@@ -1,3 +1,5 @@
+require 'browser_sniffer'
+
 module ShopifyApp
   class SameSiteCookieMiddleware
     def initialize(app)
@@ -10,12 +12,14 @@ module ShopifyApp
       user_agent = env['HTTP_USER_AGENT']
 
       if headers && headers['Set-Cookie'] && !SameSiteCookieMiddleware.same_site_none_incompatible?(user_agent) &&
-          ShopifyApp.configuration.embedded_app == true
+          ShopifyApp.configuration.enable_same_site_none
 
         cookies = headers['Set-Cookie'].split("\n").compact
 
         cookies.each do |cookie|
-          headers['Set-Cookie'] = headers['Set-Cookie'].gsub("#{cookie}", "#{cookie}; secure; SameSite=None")
+          unless cookie.include?("; SameSite")
+            headers['Set-Cookie'] = headers['Set-Cookie'].gsub("#{cookie}", "#{cookie}; secure; SameSite=None")
+          end
         end
       end
     end
@@ -29,8 +33,8 @@ module ShopifyApp
     end
 
     def self.webkit_same_site_bug?(sniffer)
-      (sniffer.os == :ios && sniffer.os_version.match?(/^([0-9]|1[12])[\.\_]/)) ||
-          (sniffer.os == :mac && sniffer.browser == :safari && sniffer.os_version.match?(/^10[\.\_]14/))
+      (sniffer.os == :ios && sniffer.os_version.match(/^([0-9]|1[12])[\.\_]/)) ||
+          (sniffer.os == :mac && sniffer.browser == :safari && sniffer.os_version.match(/^10[\.\_]14/))
     end
 
     def self.drops_unrecognized_same_site_cookies?(sniffer)
@@ -39,11 +43,11 @@ module ShopifyApp
     end
 
     def self.chromium_based?(sniffer)
-      sniffer.browser_name.downcase.match?(/chrom(e|ium)/)
+      sniffer.browser_name.downcase.match(/chrom(e|ium)/)
     end
 
     def self.uc_browser?(sniffer)
-      sniffer.user_agent.downcase.match?(/uc\s?browser/)
+      sniffer.user_agent.downcase.match(/uc\s?browser/)
     end
 
     def self.uc_browser_version_at_least?(sniffer:, major:, minor:, build:)
