@@ -57,7 +57,6 @@ module ShopifyApp
 
     def redirect_to_with_fallback(url)
       url_json = url.to_json
-      url_json_no_quotes = url_json.gsub(/\A"|"\Z/, '')
 
       render inline: %Q(
         <!DOCTYPE html>
@@ -76,9 +75,6 @@ module ShopifyApp
     end
 
     def fullpage_redirect_to(url)
-      url_json = url.to_json
-      url_json_no_quotes = url_json.gsub(/\A"|"\Z/, '')
-
       if ShopifyApp.configuration.embedded_app?
         render inline: %Q(
           <!DOCTYPE html>
@@ -88,7 +84,20 @@ module ShopifyApp
               <base target="_top">
               <title>Redirecting…</title>
               <script type="text/javascript">
-                window.top.location.href = #{url_json};
+
+              // If the current window is the 'parent', change the URL by setting location.href
+              if (window.top == window.self) {
+                window.top.location.href = #{url.to_json};
+              // If the current window is the 'child', change the parent's URL with postMessage
+              } else {
+                normalizedLink = document.createElement('a');
+                normalizedLink.href = #{url.to_json};
+                data = JSON.stringify({
+                  message: 'Shopify.API.remoteRedirect',
+                  data: { location: normalizedLink.href }
+                });
+                window.parent.postMessage(data, "https://#{sanitized_shop_name}");
+              }
               </script>
             </head>
             <body>
@@ -98,6 +107,15 @@ module ShopifyApp
       else
         redirect_to_with_fallback url
       end
+    end
+
+    def sanitized_shop_name
+      @sanitized_shop_name ||= sanitize_shop_param(params)
+    end
+
+    def sanitize_shop_param(params)
+      return unless params[:shop].present?
+      ShopifyApp::Utils.sanitize_shop_domain(params[:shop])
     end
   end
 end
